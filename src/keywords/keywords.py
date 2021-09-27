@@ -1,0 +1,23 @@
+keywords = {
+    'AND',
+    'BREAK',
+    'CONTINUE',
+    'ELIF',
+    'ELSE',
+    'ENDFUNCTIONRETURN',
+    'ENDIF',
+    'ENDWHILE',
+    'FALSE',
+    'FOR',
+    'FUNCTION',
+    'IF',
+    'NOT',
+    'NULL',
+    'OR',
+    'STEP',
+    'THEN',
+    'TO',
+    'TRUE',
+    'VAR',
+    'WHILE'
+}
