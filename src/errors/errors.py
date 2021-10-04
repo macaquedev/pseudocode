@@ -37,12 +37,10 @@ class BasePSError:
         line = self.start_position.ftxt[idx_start:idx_end]
         return (self.generate_traceback()
                 + "    "
-                + line[1:self.start_position.column + 1]
-                + line[self.start_position.column + 1:self.end_position.column + 1]
-                + line[self.end_position.column + 1:]
+                + line.strip()
                 + "\n    " + "-" * self.start_position.column
                 + "~" * (self.end_position.column - self.start_position.column)
-                + "-" * (len(line) - self.end_position.column - 1)
+                + "-" * (len(line) - self.end_position.column - 2)
                 + f"\npscode > ERROR: {self.error_type}\n"
                 + f'{self.error_message}'
                 )
@@ -122,7 +120,7 @@ class InvalidSyntaxError:
         if idx_end < 0:
             idx_end = len(self.start_position.ftxt)
 
-        line = self.start_position.ftxt[idx_start:idx_end]
+        line = self.start_position.ftxt[idx_start:idx_end].strip()
         return (f"pscode > ERROR: Invalid Syntax\n"
                 f'{self.error_message}\n'
                 f'  File "{self.start_position.filename}", line {self.start_position.line + 1}'

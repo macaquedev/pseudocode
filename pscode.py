@@ -1,5 +1,3 @@
-#!/home/alex/.virtualenvs/pseudocode/bin/python
-
 from src.main import repl, exec_file
 
 import argparse

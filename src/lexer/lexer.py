@@ -9,7 +9,9 @@ from .tokens import (
     LParenToken, RParenToken, LSquareToken, RSquareToken,
     LCurlyToken, RCurlyToken, EOFToken, EqualsToken,
     NotEqualsToken, LessThanOrEqualsToken,
-    LessThanToken, GreaterThanOrEqualsToken, GreaterThanToken, StringToken, NewlineToken
+    LessThanToken, GreaterThanOrEqualsToken, 
+    GreaterThanToken, StringToken, NewlineToken,
+    ColonToken
 )
 from ..keywords import keywords
 from .position import Position
@@ -113,7 +115,9 @@ class Lexer:
                     self.advance()
                 else:
                     tokens.append(DivideToken(start_position=start_position))
-
+            elif self.current_char == ':':
+                tokens.append(ColonToken(start_position=self.pos))
+                self.advance()
             elif self.current_char == '(':
                 tokens.append(LParenToken(start_position=self.pos))
                 self.advance()

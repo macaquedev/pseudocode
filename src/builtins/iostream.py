@@ -3,7 +3,7 @@ from ..interpreter.interpreter import RTResult, Number, String
 
 def ps_print(symbol_table):
     print(str(symbol_table.get("value")))
-    return symbol_table.get("null")
+    return symbol_table.get("NULL")
 
 
 def ps_input(symbol_table):

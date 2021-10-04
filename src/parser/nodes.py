@@ -88,6 +88,18 @@ class IfNode:
         return f'IfNode({self.cases}, {self.else_case})'
 
 
+class CaseNode:
+    def __init__(self, var_name_tok, cases, otherwise_case):
+        self.var_name_tok = var_name_tok
+        self.cases = cases
+        self.otherwise_case = otherwise_case
+        self.start_position = self.var_name_tok.start_position
+        self.end_position = (self.otherwise_case or self.cases[-1])[0].end_position
+
+    def __repr__(self):
+        return f'IfNode({self.cases}, {self.else_case})'
+
+
 class ForNode:
     def __init__(self, var_name_tok, start_value_node, end_value_node, step_value_node, body_node, should_auto_return):
         self.var_name_tok = var_name_tok
@@ -115,6 +127,19 @@ class WhileNode:
 
     def __repr__(self):
         return f"WhileNode({self.condition_node}){{{self.body_node}}}"
+
+
+class RepeatNode:
+    def __init__(self, condition_node, body_node, should_auto_return):
+        self.should_auto_return = should_auto_return
+        self.condition_node = condition_node
+        self.body_node = body_node
+
+        self.start_position = self.condition_node.start_position
+        self.end_position = self.body_node.end_position
+
+    def __repr__(self):
+        return f"RepeatNode({self.condition_node}){{{self.body_node}}}"
 
 
 class FuncDefNode:
@@ -189,3 +214,23 @@ class BreakNode:
 
     def __repr__(self):
         return "BreakNode"
+
+
+class PrintNode:
+    def __init__(self, objects_to_print, start_position, end_position):
+        self.objects_to_print = objects_to_print
+        self.start_position = start_position
+        self.end_position = end_position
+
+    def __repr__(self):
+        return f"PrintNode({self.objects_to_print})"
+
+
+class InputNode:
+    def __init__(self, var_name_tok, start_position, end_position):
+        self.var_name_tok = var_name_tok
+        self.start_position = start_position
+        self.end_position = end_position
+
+    def __repr__(self):
+        return f"InputNode({self.var_name_tok})"

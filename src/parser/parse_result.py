@@ -29,7 +29,8 @@ class ParseResult:
     def try_register(self, res):
         if res.error:
             self.to_reverse_count = res.advance_count
-            return None
+            self.error = res.error
+            return self
         return self.register(res)
 
 

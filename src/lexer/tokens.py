@@ -147,6 +147,10 @@ class ArrowToken(BaseToken):
     pass
 
 
+class ColonToken(BaseToken):
+    pass
+
+
 class StringToken(BaseToken):
     pass
 

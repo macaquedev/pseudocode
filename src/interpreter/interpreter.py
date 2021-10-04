@@ -8,7 +8,10 @@ from ..lexer.tokens import KeywordToken
 from ..parser.nodes import (
     NumberNode, StringNode, BooleanNode, BinOpNode,
     UnaryOpNode, VarAssignNode, VarAccessNode,
-    IfNode, ListNode, ForNode, ListIndexNode, NullNode
+    IfNode, CaseNode, ListNode, ForNode, WhileNode,
+    ListIndexNode, NullNode, RepeatNode, FuncDefNode,
+    CallNode, ReturnNode, ContinueNode, BreakNode,
+    PrintNode, InputNode
 )
 
 
@@ -96,10 +99,10 @@ class Null(Value):
         self.value = None
 
     def __repr__(self):
-        return "null"
+        return "NULL"
 
     def __str__(self):
-        return "null"
+        return "NULL"
 
     def copy(self):
         return self
@@ -116,6 +119,19 @@ class List(Value):
         else:
             return List(self.elements + [other]), None
 
+    def __eq__(self, other):
+        if isinstance(other, List):
+            return Boolean(self.elements == other.elements), None
+        else:
+            return Boolean(False), None
+
+    def __ne__(self, other):
+        if isinstance(other, List):
+            return Boolean(self.elements != other.elements), None
+
+        else:
+            return Boolean(True), None
+
     def copy(self):
         return List(self.elements).set_pos(self.start_position, self.end_position).set_context(self.context)
 
@@ -123,7 +139,7 @@ class List(Value):
         return f"List({self.elements})"
 
     def __str__(self):
-        return f"{[str(i) for i in self.elements]}"  # TODO
+        return f"{[int(str(i)) if i.__class.__name__ == Number else str(i) for i in self.elements]}"
 
     def __getitem__(self, other):
         if other.__class__.__name__ == "Number":
@@ -149,7 +165,6 @@ class List(Value):
             self.context
         )
 
-
 class Boolean(Value):
     def __init__(self, value: bool):
         super().__init__()
@@ -159,13 +174,23 @@ class Boolean(Value):
         return f"Boolean({self.value})"
 
     def __str__(self):
-        return "true" if self.value else "false"
+        return "TRUE" if self.value else "FALSE"
 
     def __eq__(self, other):
         if isinstance(other, Boolean):
             return Boolean(other.value == self.value).set_context(self.context), None
         elif isinstance(other, Number):
             if other.value == 0:
+                return Boolean(self.value).set_context(self.context), None
+            else:
+                return Boolean(not self.value).set_context(self.context), None
+        elif isinstance(other, String):
+            if other.value == "":
+                return Boolean(self.value).set_context(self.context), None
+            else:
+                return Boolean(not self.value).set_context(self.context), None
+        elif isinstance(other, List):
+            if other.elements == []:
                 return Boolean(self.value).set_context(self.context), None
             else:
                 return Boolean(not self.value).set_context(self.context), None
@@ -450,7 +475,7 @@ class PSFunction(BaseFunction):
             return res
 
         return res.success((value if self.should_auto_return else None)
-                           or res.func_return_value or exec_ctx.symbol_table.get("null"))
+                           or res.func_return_value or exec_ctx.symbol_table.get("NULL"))
 
     def copy(self):
         return PSFunction(self.name, self.body_node, self.arg_names, self.should_auto_return).set_context(
@@ -515,13 +540,13 @@ class Interpreter:
     @staticmethod
     def visit_boolean_node(node: BooleanNode, context: Context) -> RTResult:
         return RTResult().success(
-            Boolean(node.tok.value == "true").set_context(context).set_pos(node.start_position, node.end_position)
+            Boolean(node.tok.value == "TRUE").set_context(context).set_pos(node.start_position, node.end_position)
         )
 
     @staticmethod
     def visit_null_node(node: NullNode, context: Context) -> RTResult:
         return RTResult().success(
-            context.symbol_table.get("null").set_pos(node.start_position, node.end_position)
+            context.symbol_table.get("NULL").set_pos(node.start_position, node.end_position)
         )
 
     def visit_list_node(self, node: ListNode, context: Context) -> RTResult:
@@ -649,7 +674,7 @@ class Interpreter:
                     expr_value = res.register(self.visit(expr, context))
                     if res.should_return():
                         return res
-                    return res.success(expr_value if not should_auto_return else context.symbol_table.get("null"))
+                    return res.success(expr_value if not should_auto_return else context.symbol_table.get("NULL"))
             else:
                 return res.failure(InvalidSyntaxError(
                     node.start_position, node.end_position,
@@ -661,9 +686,39 @@ class Interpreter:
             else_value = res.register(self.visit(expr, context))
             if res.should_return():
                 return res
-            return res.success(else_value if not should_auto_return else context.symbol_table.get("null"))
+            return res.success(else_value if not should_auto_return else context.symbol_table.get("NULL"))
 
-        return res.success(context.symbol_table.get("null"))
+        return res.success(context.symbol_table.get("NULL"))
+
+    def visit_case_node(self, node: CaseNode, context: Context) -> RTResult:
+        res = RTResult()
+
+        var_value = context.symbol_table.get(node.var_name_tok.value)
+
+        for value, response, should_auto_return in node.cases:
+            condition_value = res.register(self.visit(value, context))
+            if res.should_return():
+                return res
+
+            case_matched, error = condition_value == var_value
+            if error:
+                return res.failure(error)
+
+            if case_matched:
+                expr_value = res.register(self.visit(response, context))
+                if res.should_return():
+                    return res
+                return res.success(context.symbol_table.get("NULL") if should_auto_return else expr_value)
+
+        else:
+            if node.otherwise_case:
+                expr, should_auto_return = node.otherwise_case
+                otherwise_value = res.register(self.visit(expr, context))
+                if res.should_return():
+                    return res
+                return res.success(context.symbol_table.get("NULL") if should_auto_return else otherwise_value)
+
+        return res.success(context.symbol_table.get("NULL"))
 
     def visit_for_node(self, node: ForNode, context: Context) -> RTResult:
         res = RTResult()
@@ -687,17 +742,16 @@ class Interpreter:
 
         if step_value >= Number(0):
             def condition():
-                return (i < end_value)[0]
+                return (i <= end_value)[0]
         else:
             def condition():
-                return (i > end_value)[0]
+                return (i >= end_value)[0]
 
         context.symbol_table.set(node.var_name_tok.value, i)
 
         while condition():
             context.symbol_table.set(node.var_name_tok.value, i)
             i, _ = i + step_value
-
             value = res.register(self.visit(node.body_node, context))
             if res.should_return() and not res.loop_should_continue and not res.loop_should_break:
                 return res
@@ -712,9 +766,9 @@ class Interpreter:
 
         return res.success(List(elements).set_context(context).set_pos(node.start_position, node.end_position)
                            if not node.should_auto_return
-                           else context.symbol_table.get("null"))
+                           else context.symbol_table.get("NULL"))
 
-    def visit_while_node(self, node, context):
+    def visit_while_node(self, node: WhileNode, context: Context):
         res = RTResult()
         elements = []
 
@@ -735,18 +789,49 @@ class Interpreter:
                 continue
 
             if res.loop_should_break:
-                continue
+                break
 
             elements.append(value)
 
         return res.success(
             List(elements).set_context(context).set_pos(node.start_position, node.end_position)
             if node.should_auto_return
-            else context.symbol_table.get("null")
+            else context.symbol_table.get("NULL")
+        )
+
+    def visit_repeat_node(self, node: RepeatNode, context: Context):
+        res = RTResult()
+        elements = []
+
+        while True:
+            value = res.register(self.visit(node.body_node, context))
+
+            if res.should_return() and not res.loop_should_continue and not res.loop_should_break:
+                return res
+
+            if res.loop_should_continue:
+                continue
+
+            if res.loop_should_break:
+                break
+
+            elements.append(value)
+
+            condition = res.register(self.visit(node.condition_node, context))
+            if res.should_return():
+                return res
+
+            if condition:
+                break
+
+        return res.success(
+            List(elements).set_context(context).set_pos(node.start_position, node.end_position)
+            if node.should_auto_return
+            else context.symbol_table.get("NULL")
         )
 
     @staticmethod
-    def visit_func_def_node(node, context):
+    def visit_func_def_node(node: FuncDefNode, context: Context):
         res = RTResult()
         func_name = node.var_name_tok.value if node.var_name_tok else None
         body_node = node.body_node
@@ -759,7 +844,7 @@ class Interpreter:
 
         return res.success(func_value)
 
-    def visit_call_node(self, node, context):
+    def visit_call_node(self, node: CallNode, context: Context):
         res = RTResult()
         args = []
 
@@ -778,7 +863,40 @@ class Interpreter:
             return res
         return res.success(return_value.copy().set_pos(node.start_position, node.end_position).set_context(context))
 
-    def visit_return_node(self, node, context):
+    def visit_print_node(self, node: PrintNode, context: Context):
+        res = RTResult()
+
+        print_list = []
+
+        for obj in node.objects_to_print:
+            value = res.register(self.visit(obj, context))
+            if res.should_return():
+                return res
+            
+            print_list.append(value)
+
+        for obj in print_list[:-1]:
+            print(obj, end=" ")
+
+        print(print_list[-1])
+        return res.success(context.symbol_table.get("NULL"))
+
+    def visit_input_node(self, node: InputNode, context: Context):
+        res = RTResult()
+
+        value = input()
+
+        try:
+            int(value)
+            value = Number(int(value))
+        except:
+            value = String(value)
+
+        context.symbol_table.set(node.var_name_tok.value, value)
+
+        return res.success(context.symbol_table.get("NULL"))
+
+    def visit_return_node(self, node: ReturnNode, context: Context):
         res = RTResult()
 
         if node.node_to_return:
@@ -786,8 +904,8 @@ class Interpreter:
             if res.should_return():
                 return res
         else:
-            value = context.symbol_table.get("null")
-        return res.success_return(value or context.symbol_table.get("null"))
+            value = context.symbol_table.get("NULL")
+        return res.success_return(value or context.symbol_table.get("NULL"))
 
     @staticmethod
     def visit_continue_node(*_):
