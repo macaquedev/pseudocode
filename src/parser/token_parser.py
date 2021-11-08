@@ -105,7 +105,7 @@ class Parser:
             self.advance()
             return res.success(BreakNode(start_position, self.current_tok.start_position.copy()))
 
-        elif self.current_tok.matches(KeywordToken("PRINT")):
+        elif self.current_tok.matches(KeywordToken("OUTPUT")):
             objects_to_print = []
             res.register_advancement()
             self.advance()
