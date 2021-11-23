@@ -14,6 +14,7 @@ keywords = {
     'FUNCTION',
     'IF',
     'INPUT',
+    'MOD',
     'NEXT',
     'NOT',
     'NULL',

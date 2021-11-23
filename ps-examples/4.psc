@@ -1,1 +1,3 @@
-OUTPUT "Hello World"
+Dice <- 22
+
+OUTPUT STRING(Dice)

@@ -40,7 +40,7 @@ class Parser:
         if not (res.error or self.current_tok.__class__.__name__ == "EOFToken"):
             return res.failure(InvalidSyntaxError(
                 self.current_tok.start_position, self.current_tok.end_position,
-                "Expected '+', '-', '*', '/', '==', '!=', '<', '>', <=', '>=', 'AND' or 'OR'"
+                "Expected '+', '-', '*', '/', '=', '!=', '<', '>', <=', '>=', 'AND' or 'OR'"
             ))
 
         return res

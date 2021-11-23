@@ -19,9 +19,6 @@ class Value:
     def __init__(self):
         self.set_pos()
         self.set_context()
-        self.start_position = None
-        self.end_position = None
-        self.context = None
 
     def illegal_operation(self, other=None, message=None):
         if other is None and message is None:
@@ -238,7 +235,11 @@ class Number(Value):
         return f"Number({self.value})"
 
     def __str__(self):
-        return str(x) if (x := int(self.value)) == self.value else self.value
+        print("YEET")
+        if float(self.value) == int(float(self.value)):
+            return str(int(self.value))
+        else:
+            return str(self.value)
 
     def __add__(self, other):
         if isinstance(other, Number):
@@ -411,7 +412,14 @@ class String(Value):
         return f"String({self.value})"
 
     def __str__(self):
-        return str(self.value)
+        try:
+            int(float(self.value))
+        except Exception as e:
+            return str(self.value)
+        if float(self.value) == int(float(self.value)):
+            return str(int(float(self.value)))
+        else:
+            return str(self.value)
 
     def copy(self):
         return String(self.value).set_pos(self.start_position, self.end_position).set_context(self.context)
@@ -494,7 +502,9 @@ class PythonFunction(BaseFunction):
     def __call__(self, args):
         res = RTResult()
         exec_ctx = self.generate_new_context()
-        self.check_and_populate_args(self.arg_names, args, exec_ctx)
+        res.register(self.check_and_populate_args(self.arg_names, args, exec_ctx))
+        if res.should_return():
+            return res
         return_value = self.body(exec_ctx.symbol_table)
         if res.should_return():
             return res

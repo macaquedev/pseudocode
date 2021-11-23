@@ -48,7 +48,7 @@ class Lexer:
                 tokens.append(self.make_number())
             elif self.current_char in ascii_letters:
                 tokens.append(self.make_identifier())
-            elif self.current_char in '"\'':
+            elif self.current_char == '"':
                 result, error = self.make_string()
                 if error:
                     return [], error
@@ -62,16 +62,14 @@ class Lexer:
                     self.advance()
                 else:
                     tokens.append(EqualsToken(start_position=start_position))
-            elif self.current_char == "!":
-                tok, error = self.make_not_equals()
-                if error:
-                    return [], error
-                tokens.append(tok)
             elif self.current_char == "<":
                 start_position = self.pos.copy()
                 self.advance()
                 if self.current_char == "=":
                     tokens.append(LessThanOrEqualsToken(start_position=start_position, end_position=self.pos))
+                    self.advance()
+                elif self.current_char == ">":
+                    tokens.append(NotEqualsToken(start_position=start_position, end_position=self.pos))
                     self.advance()
                 elif self.current_char == "-":
                     tokens.append(AssignmentToken(start_position=start_position, end_position=self.pos))
@@ -151,20 +149,20 @@ class Lexer:
         start_position = self.pos.copy()
         self.advance()
         while True:
+            if self.current_char == terminator:
+                break
             if self.current_char == "\\":
                 escaped = True
                 self.advance()
             if self.current_char is None:
-                return None, UnexpectedEOFError(self.pos, "This probably means you have forgotten to close a string")
+                return None, UnexpectedEOFError(start_position, "This probably means you have forgotten to close a string")
             if escaped:
                 value += self.escape_chars.get(self.current_char, self.current_char)
                 escaped = False
             else:
                 value += self.current_char
             self.advance()
-            if self.current_char == terminator:
-                break
-
+            
         self.advance()
         return StringToken(value, start_position=start_position, end_position=self.pos), None
 
@@ -193,7 +191,9 @@ class Lexer:
             id_str += self.current_char
             self.advance()
 
-        if id_str in keywords:
+        if id_str == "MOD":
+            return ModuloToken(id_str, start_position=start_position, end_position=self.pos)
+        elif id_str in keywords:
             return KeywordToken(id_str, start_position=start_position, end_position=self.pos)
         else:
             return IdentifierToken(id_str, start_position=start_position, end_position=self.pos)
